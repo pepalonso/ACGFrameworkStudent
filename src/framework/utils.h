@@ -27,6 +27,7 @@ glm::vec3 transformQuat(const glm::vec3& a, const glm::quat& q);
 bool checkGLErrors();
 
 std::string getPath();
+bool setWorkingDirectoryToProjectRoot();
 
 //Vector2 getDesktopSize(int display_index = 0);
 

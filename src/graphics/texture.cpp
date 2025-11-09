@@ -439,12 +439,9 @@ void Texture::UnbindAll()
 
 void Texture::generateMipmaps()
 {
-	if (!glGenerateMipmapEXT)
-		return;
-
 	glBindTexture(this->texture_type, texture_id);	//enable the id of the texture we are going to use
 	glTexParameteri(this->texture_type, GL_TEXTURE_MIN_FILTER, Texture::default_min_filter); //set the mag filter
-	glGenerateMipmapEXT(this->texture_type);
+	glGenerateMipmap(this->texture_type);
 }
 
 

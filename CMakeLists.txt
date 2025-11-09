@@ -91,6 +91,7 @@ if(NOT UNIX)
 endif(NOT UNIX)
 
 # glfw
+set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "Build support for Wayland")
 add_subdirectory(libraries/glfw)
 target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
 set_property(TARGET glfw PROPERTY FOLDER "External/GLFW3")

@@ -128,6 +128,67 @@ std::string getPath()
 	return fullpath;
 }
 
+bool setWorkingDirectoryToProjectRoot()
+{
+	char cCurrentPath[1024];
+	if (!GetCurrentDir(cCurrentPath, sizeof(cCurrentPath)))
+		return false;
+
+	cCurrentPath[sizeof(cCurrentPath) - 1] = '\0';
+	std::string currentPath(cCurrentPath);
+
+	// Helper function to check if res/meshes directory exists
+	auto checkResExists = [](const std::string& path) -> bool {
+		std::string resPath = path + "/res/meshes";
+		FILE* test = fopen((resPath + "/cube.obj").c_str(), "r");
+		if (test)
+		{
+			fclose(test);
+			return true;
+		}
+		return false;
+	};
+
+	// Check if res/ directory exists in current directory
+	if (checkResExists(currentPath))
+	{
+		return true; // Already at project root
+	}
+
+	// If we're in build/, go up one directory
+	if (currentPath.find("build") != std::string::npos)
+	{
+		size_t lastSlash = currentPath.find_last_of("/\\");
+		if (lastSlash != std::string::npos)
+		{
+			std::string parentPath = currentPath.substr(0, lastSlash);
+			if (checkResExists(parentPath))
+			{
+				if (chdir(parentPath.c_str()) == 0)
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	// Try going up one level from current directory
+	size_t lastSlash = currentPath.find_last_of("/\\");
+	if (lastSlash != std::string::npos)
+	{
+		std::string parentPath = currentPath.substr(0, lastSlash);
+		if (checkResExists(parentPath))
+		{
+			if (chdir(parentPath.c_str()) == 0)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false; // Could not find project root
+}
+
 bool readFile(const std::string& filename, std::string& content)
 {
 	content.clear();

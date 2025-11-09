@@ -1,4 +1,6 @@
 #include "application.h"
+#include "graphics/volumematerial.h"
+#include <glm/gtx/transform.hpp>
 
 bool render_wireframe = false;
 Camera* Application::camera = nullptr;
@@ -27,6 +29,20 @@ void Application::init(GLFWwindow* window)
     example->mesh = Mesh::Get("res/meshes/sphere.obj");
     example->material = new StandardMaterial();
     this->node_list.push_back(example);
+
+    // Create volume node (only once at initialization)
+    SceneNode* volumeNode = new SceneNode("Volume Node");
+    volumeNode->type = NODE_VOLUME;
+    
+    // Create cube mesh as auxiliary geometry for the volume
+    Mesh* cubeMesh = new Mesh();
+    cubeMesh->createCube();
+    volumeNode->mesh = cubeMesh;
+    
+    // Create volume material (uses scene's ambient light as background)
+    volumeNode->material = new VolumeMaterial(0.5f);
+        
+    this->node_list.push_back(volumeNode);
 }
 
 void Application::update(float dt)
@@ -41,8 +57,8 @@ void Application::update(float dt)
 
 void Application::render()
 {
-    // Set the clear color (the background color)
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    // Set the clear color (the background color) using ambient light
+    glClearColor(this->ambient_light.r, this->ambient_light.g, this->ambient_light.b, this->ambient_light.a);
 
     // Clear the window and the depth buffer
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

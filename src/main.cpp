@@ -10,6 +10,7 @@
 #include "ImGuizmo.h"
 
 #include "application.h"
+#include "framework/utils.h"
 
 // Globals
 Application* app;
@@ -182,6 +183,9 @@ void mainLoop(GLFWwindow* window)
 
 int main(void) 
 {
+	// Set working directory to project root (so res/ files can be found)
+	setWorkingDirectoryToProjectRoot();
+
 	// Glfw (Window API)
 	if (!glfwInit())
 		return -1;
