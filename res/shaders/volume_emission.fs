@@ -11,6 +11,8 @@ uniform int u_is_homogeneous;     // 1 = homogeneous, 0 = heterogeneous (Exercis
 uniform float u_noise_scale;      // Scale for noise sampling (Exercise 3.2)
 uniform vec4 u_emission_color;    // Emission color (Exercise 3.3)
 uniform float u_emission_intensity; // Emission intensity multiplier (Exercise 3.3)
+uniform sampler3D u_volume_texture;  // 3D texture from VDB (Lab 4, Task 3.1)
+uniform int u_volume_source;         // 0=VDB, 1=Noise, 2=Constant (Lab 4, Task 3.1)
 
 out vec4 FragColor;
 
@@ -122,16 +124,6 @@ void main()
 	float ta = intersection.x;  // tNear (entry point)
 	float tb = intersection.y;  // tFar (exit point)
 	
-	// Check if ray intersects the box (no intersection means tNear > tFar)
-	if (ta > tb || tb < 0.0)
-	{
-		// Ray doesn't intersect volume - return background color
-		FragColor = u_background_color;
-		return;
-	}
-	
-	// If camera is inside the volume, start from t=0
-	ta = max(ta, 0.0);
 	
 	float opticalThickness = 0.0;
 	vec4 accumulatedEmission = vec4(0.0);
@@ -165,11 +157,22 @@ void main()
 		float t = ta;
 		while (t < tb)
 		{
-			// Current position in object space
-			vec3 posObj = rayOriginObj + rayDirObj * t;
-			
-			// Sample density from noise function
-			float density = max(snoise(posObj * u_noise_scale), 0.0);
+		// Current position in object space
+		vec3 posObj = rayOriginObj + rayDirObj * t;
+		
+		// Sample density based on selected volume source (Lab 4, Task 3.1)
+		float density;
+		if (u_volume_source == 0) {
+			// VDB: Sample from 3D texture
+			vec3 texCoords = (posObj + 1.0) * 0.5;  // Transform [-1,1] to [0,1]
+			density = texture(u_volume_texture, texCoords).r;
+		} else if (u_volume_source == 1) {
+			// 3D Noise (existing Lab 3 implementation)
+			density = max(snoise(posObj * u_noise_scale), 0.0);
+		} else {
+			// Constant density (uses absorption coefficient as constant value)
+			density = u_absorption_coeff;
+		}
 			
 			// Compute optical thickness for this step
 			float stepOpticalThickness = density * u_absorption_coeff * stepLengthWorld;
@@ -177,13 +180,14 @@ void main()
 			// Compute local transmittance for this step
 			float localTransmittance = exp(-stepOpticalThickness);
 			
+			// Update total transmittance
+			transmittance *= localTransmittance;
+			
 			// Accumulate emission (before updating transmittance)
 			// Emission contribution = density * emission_color * current_transmittance * step_length
 			vec4 emissionContribution = density * u_emission_color * u_emission_intensity * transmittance * stepLengthWorld;
 			accumulatedEmission += emissionContribution;
 			
-			// Update total transmittance
-			transmittance *= localTransmittance;
 			
 			// Advance along the ray
 			t += u_step_length;

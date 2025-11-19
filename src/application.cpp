@@ -1,5 +1,6 @@
 #include "application.h"
 #include "graphics/volumematerial.h"
+#include "graphics/volumescatteringmaterial.h"
 #include <glm/gtx/transform.hpp>
 
 bool render_wireframe = false;
@@ -40,7 +41,10 @@ void Application::init(GLFWwindow* window)
     volumeNode->mesh = cubeMesh;
     
     // Create volume material (uses scene's ambient light as background)
-    volumeNode->material = new VolumeMaterial(0.5f);
+    //Lab 3: Use VolumeMaterial instead of VolumeScatteringMaterial
+    //volumeNode->material = new VolumeMaterial(0.5f);
+    // Lab 4: Use VolumeScatteringMaterial instead of VolumeMaterial
+    volumeNode->material = new VolumeScatteringMaterial(0.5f);
         
     this->node_list.push_back(volumeNode);
 }

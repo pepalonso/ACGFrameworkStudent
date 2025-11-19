@@ -108,6 +108,7 @@ void main()
 	
 	// Transform ray to object space for intersection test
 	mat4 invModel = inverse(u_model);
+	// Camera position in object space
 	vec3 rayOriginObj = (invModel * vec4(rayOrigin, 1.0)).xyz;
 	vec3 rayDirObj = normalize((invModel * vec4(rayDir, 0.0)).xyz);
 	
@@ -119,17 +120,6 @@ void main()
 	vec2 intersection = intersectAABB(rayOriginObj, rayDirObj, boxMin, boxMax);
 	float ta = intersection.x;  // tNear (entry point)
 	float tb = intersection.y;  // tFar (exit point)
-	
-	// Check if ray intersects the box (no intersection means tNear > tFar)
-	if (ta > tb || tb < 0.0)
-	{
-		// Ray doesn't intersect volume - return background color
-		FragColor = u_background_color;
-		return;
-	}
-	
-	// If camera is inside the volume, start from t=0
-	ta = max(ta, 0.0);
 	
 	float opticalThickness = 0.0;
 	
