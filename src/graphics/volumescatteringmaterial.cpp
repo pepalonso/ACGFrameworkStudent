@@ -9,6 +9,10 @@ VolumeScatteringMaterial::VolumeScatteringMaterial(float absorption_coeff)
 	this->is_homogeneous = 0;       // Heterogeneous (ray-marching required for VDB)
 	this->shader_mode = 1;          // Emission-Absorption mode
 	
+	// Task 3.2: Initialize scattering parameters
+	this->scattering_coeff = 0.5f;      // Default scattering coefficient μs
+	this->light_step_length = 0.1f;     // Default light ray-march step size
+	
 	// Load Lab 4 shader (volume_emission) by default
 	this->shader = Shader::Get("res/shaders/volume_emission.vs", "res/shaders/volume_emission.fs");
 	
@@ -21,13 +25,23 @@ void VolumeScatteringMaterial::setUniforms(Camera* camera, glm::mat4 model)
 	// Call parent setUniforms first (uploads all Lab 3 uniforms)
 	VolumeMaterial::setUniforms(camera, model);
 	
-	// Upload new Lab 4 uniform: volume source selector
+	// Task 3.1: Upload volume source selector
 	this->shader->setUniform("u_volume_source", this->volume_source);
 	
-	// Bind 3D texture when VDB mode is selected
-	if (this->volume_source == 0 && this->texture) {
+	// Task 3.1: Bind 3D texture if it exists
+	if (this->texture) {
 		this->texture->bind();
 		this->shader->setUniform("u_volume_texture", 0);
+	}
+	
+	// Task 3.2: Upload scattering parameters
+	this->shader->setUniform("u_scattering_coeff", this->scattering_coeff);
+	this->shader->setUniform("u_light_step_length", this->light_step_length);
+	
+	// Task 3.2: Upload light data (if light exists)
+	if (Application::instance->light_list.size() > 0) {
+		Light* light = Application::instance->light_list[0];
+		light->setUniforms(this->shader, model);
 	}
 }
 
@@ -52,6 +66,14 @@ void VolumeScatteringMaterial::renderInMenu()
 	// Show info when Constant is selected
 	if (this->volume_source == 2) {
 		ImGui::Text("Using Absorption Coefficient as constant density");
+	}
+	
+	// Task 3.2: Scattering controls (only in heterogeneous mode)
+	if (this->is_homogeneous == 0) {
+		ImGui::Separator();
+		ImGui::Text("Lab 4: Scattering (Task 3.2)");
+		ImGui::SliderFloat("Scattering Coeff", &this->scattering_coeff, 0.0f, 2.0f);
+		ImGui::SliderFloat("Light Step Length", &this->light_step_length, 0.01f, 0.5f);
 	}
 }
 

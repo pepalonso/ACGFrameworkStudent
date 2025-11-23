@@ -9,10 +9,18 @@ uniform float u_absorption_coeff;
 uniform float u_step_length;      // Step length for ray-marching (Exercise 3.2)
 uniform int u_is_homogeneous;     // 1 = homogeneous, 0 = heterogeneous (Exercise 3.2)
 uniform float u_noise_scale;      // Scale for noise sampling (Exercise 3.2)
-uniform vec4 u_emission_color;    // Emission color (Exercise 3.3)
-uniform float u_emission_intensity; // Emission intensity multiplier (Exercise 3.3)
-uniform sampler3D u_volume_texture;  // 3D texture from VDB (Lab 4, Task 3.1)
-uniform int u_volume_source;         // 0=VDB, 1=Noise, 2=Constant (Lab 4, Task 3.1)
+uniform vec4 u_emission_color;
+uniform float u_emission_intensity;
+uniform sampler3D u_volume_texture;
+uniform int u_volume_source;
+
+// Lab 4 Task 3.2: Scattering parameters
+uniform float u_scattering_coeff;
+uniform float u_light_step_length;
+uniform vec3 u_light_position;
+uniform vec3 u_local_light_position;
+uniform vec4 u_light_color;
+uniform float u_light_intensity;
 
 out vec4 FragColor;
 
@@ -104,6 +112,21 @@ vec2 intersectAABB(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
 	return vec2(tNear, tFar);
 }
 
+
+float computeDensity(vec3 posObj){
+	if (u_volume_source == 0) {
+		// VDB: Sample from 3D texture
+		vec3 texCoords = (posObj + 1.0) * 0.5;
+		return texture(u_volume_texture, texCoords).r;
+	} else if (u_volume_source == 1) {
+		// 3D Noise
+		return max(snoise(posObj * u_noise_scale), 0.0);
+	} else {
+		// Constant density
+		return u_absorption_coeff;
+	}
+}
+
 void main()
 {
 	// Step 1: Initialize ray (position and direction)
@@ -145,37 +168,28 @@ void main()
 	}
 	else
 	{
-		// HETEROGENEOUS VOLUME WITH EMISSION (Exercise 3.2 + 3.3)
-		// Ray-marching to accumulate both optical thickness and emission
+		// HETEROGENEOUS VOLUME WITH SCATTERING
 		
 		// Pre-compute world-space step length
 		vec3 stepVecObj = rayDirObj * u_step_length;
 		vec3 stepVecWorld = (u_model * vec4(stepVecObj, 0.0)).xyz;
 		float stepLengthWorld = length(stepVecWorld);
 		
+		// Pre-compute extinction coefficient: μt = μa + μs
+		float extinctionCoeff = u_absorption_coeff + u_scattering_coeff;
+		
 		// Ray-marching loop
 		float t = ta;
 		while (t < tb)
 		{
-		// Current position in object space
-		vec3 posObj = rayOriginObj + rayDirObj * t;
-		
-		// Sample density based on selected volume source (Lab 4, Task 3.1)
-		float density;
-		if (u_volume_source == 0) {
-			// VDB: Sample from 3D texture
-			vec3 texCoords = (posObj + 1.0) * 0.5;  // Transform [-1,1] to [0,1]
-			density = texture(u_volume_texture, texCoords).r;
-		} else if (u_volume_source == 1) {
-			// 3D Noise (existing Lab 3 implementation)
-			density = max(snoise(posObj * u_noise_scale), 0.0);
-		} else {
-			// Constant density (uses absorption coefficient as constant value)
-			density = u_absorption_coeff;
-		}
+			// Current position in object space
+			vec3 posObj = rayOriginObj + rayDirObj * t;
+			
+			// Sample density based on selected volume source
+			float density = computeDensity(posObj);
 			
 			// Compute optical thickness for this step
-			float stepOpticalThickness = density * u_absorption_coeff * stepLengthWorld;
+			float stepOpticalThickness = density * extinctionCoeff * stepLengthWorld;
 			
 			// Compute local transmittance for this step
 			float localTransmittance = exp(-stepOpticalThickness);
@@ -183,11 +197,45 @@ void main()
 			// Update total transmittance
 			transmittance *= localTransmittance;
 			
-			// Accumulate emission (before updating transmittance)
-			// Emission contribution = density * emission_color * current_transmittance * step_length
+			// Accumulate emission
 			vec4 emissionContribution = density * u_emission_color * u_emission_intensity * transmittance * stepLengthWorld;
 			accumulatedEmission += emissionContribution;
+
+			// Task 3.2: Compute in-scattering from light source
+			vec3 lightDir = normalize(u_local_light_position - posObj);
+    
+			// Find exit point for shadow ray
+			vec2 lightIntersection = intersectAABB(posObj, lightDir, boxMin, boxMax);
+			float tLightExit = lightIntersection.y;
 			
+			// Secondary ray-march to compute shadow
+			float shadowOpticalThickness = 0.0;
+			float tLight = 0.0;
+
+			while (tLight < tLightExit) {
+				vec3 lightSamplePos = posObj + lightDir * tLight;
+				float shadowDensity = computeDensity(lightSamplePos);
+				
+				vec3 lightStepVecObj = lightDir * u_light_step_length;
+				vec3 lightStepVecWorld = (u_model * vec4(lightStepVecObj, 0.0)).xyz;
+				float lightStepLengthWorld = length(lightStepVecWorld);
+				
+				shadowOpticalThickness += shadowDensity * extinctionCoeff * lightStepLengthWorld;
+				tLight += u_light_step_length;
+			}
+			
+			// Compute shadow transmittance
+			float shadowTransmittance = exp(-shadowOpticalThickness);
+			
+			// Local scattering coefficient μs(t') = density * u_scattering_coeff
+			float mu_s = density * u_scattering_coeff;
+			
+			// Isotropic phase function (Task 3.2 only)
+			float phaseFunction = 1.0 / (4.0 * 3.14159265);
+			vec3 inScattering = mu_s * u_light_intensity * u_light_color.rgb * shadowTransmittance * phaseFunction;
+			
+			// Add scattering contribution to color
+			accumulatedEmission.rgb += inScattering * transmittance * stepLengthWorld;
 			
 			// Advance along the ray
 			t += u_step_length;
@@ -195,7 +243,6 @@ void main()
 	}
 	
 	// Step 4: Compute final radiance
-	// L_final = accumulated_emission + background * transmittance
 	FragColor = accumulatedEmission + u_background_color * transmittance;
 }
 

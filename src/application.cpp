@@ -47,6 +47,11 @@ void Application::init(GLFWwindow* window)
     volumeNode->material = new VolumeScatteringMaterial(0.5f);
         
     this->node_list.push_back(volumeNode);
+    
+    // Lab 4 Task 3.2: Create light source for scattering
+    Light* light = new Light(glm::vec3(2.0f, 3.0f, 2.0f), 10.0f, glm::vec4(1.0f, 0.9f, 0.7f, 1.0f));
+    this->light_list.push_back(light);
+    this->node_list.push_back(light);  // Add to nodes for GUI visibility and debug sphere
 }
 
 void Application::update(float dt)
