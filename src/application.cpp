@@ -23,7 +23,8 @@ void Application::init(GLFWwindow* window)
     this->flag_grid = true;
     this->flag_wireframe = false;
 
-    this->ambient_light = glm::vec4(0.75f, 0.75f, 0.75f, 1.f);
+    // Default ambient/background color (dark blue/purple tone)
+    this->ambient_light = glm::vec4(0.063f, 0.019f, 0.132f, 1.f);
 
     /* ADD NODES TO THE SCENE */
     SceneNode* example = new SceneNode("Example Node");

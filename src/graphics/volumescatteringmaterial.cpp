@@ -12,6 +12,10 @@ VolumeScatteringMaterial::VolumeScatteringMaterial(float absorption_coeff)
 	// Task 3.2: Initialize scattering parameters
 	this->scattering_coeff = 0.5f;      // Default scattering coefficient μs
 	this->light_step_length = 0.1f;     // Default light ray-march step size
+	this->phase_g = 0.0f;               // Isotropic by default (Task 3.3)
+	
+	// Set default emission color for Lab 4 (green tone)
+	this->emission_color = glm::vec4(0.072f, 0.314f, 0.094f, 1.0f);
 	
 	// Load Lab 4 shader (volume_emission) by default
 	this->shader = Shader::Get("res/shaders/volume_emission.vs", "res/shaders/volume_emission.fs");
@@ -37,6 +41,7 @@ void VolumeScatteringMaterial::setUniforms(Camera* camera, glm::mat4 model)
 	// Task 3.2: Upload scattering parameters
 	this->shader->setUniform("u_scattering_coeff", this->scattering_coeff);
 	this->shader->setUniform("u_light_step_length", this->light_step_length);
+	this->shader->setUniform("u_phase_g", this->phase_g);
 	
 	// Task 3.2: Upload light data (if light exists)
 	if (Application::instance->light_list.size() > 0) {
@@ -74,6 +79,9 @@ void VolumeScatteringMaterial::renderInMenu()
 		ImGui::Text("Lab 4: Scattering (Task 3.2)");
 		ImGui::SliderFloat("Scattering Coeff", &this->scattering_coeff, 0.0f, 2.0f);
 		ImGui::SliderFloat("Light Step Length", &this->light_step_length, 0.01f, 0.5f);
+		
+		ImGui::Text("Lab 4: Phase Function (Task 3.3)");
+		ImGui::SliderFloat("Phase g", &this->phase_g, -0.9f, 0.9f);
 	}
 }
 

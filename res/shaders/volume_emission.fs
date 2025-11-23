@@ -21,6 +21,8 @@ uniform vec3 u_light_position;
 uniform vec3 u_local_light_position;
 uniform vec4 u_light_color;
 uniform float u_light_intensity;
+// Task 3.3: Henyey-Greenstein phase function parameter
+uniform float u_phase_g;
 
 out vec4 FragColor;
 
@@ -230,9 +232,17 @@ void main()
 			// Local scattering coefficient μs(t') = density * u_scattering_coeff
 			float mu_s = density * u_scattering_coeff;
 			
-			// Isotropic phase function (Task 3.2 only)
-			float phaseFunction = 1.0 / (4.0 * 3.14159265);
-			vec3 inScattering = mu_s * u_light_intensity * u_light_color.rgb * shadowTransmittance * phaseFunction;
+			// Task 3.3: Henyey-Greenstein phase function
+			// ω  : direction towards the viewer  -> -rayDirObj
+			// ωi : incident direction from light -> lightDir
+			float cosTheta = dot(normalize(-rayDirObj), lightDir);
+			cosTheta = clamp(cosTheta, -1.0, 1.0);
+			float g = u_phase_g;
+			float oneMinusGSqr = 1.0 - g * g;
+			float denom = 1.0 + g * g - 2.0 * g * cosTheta;
+			float phaseHG = oneMinusGSqr / (4.0 * 3.14159265 * pow(denom, 1.5));
+			
+			vec3 inScattering = mu_s * u_light_intensity * u_light_color.rgb * shadowTransmittance * phaseHG;
 			
 			// Add scattering contribution to color
 			accumulatedEmission.rgb += inScattering * transmittance * stepLengthWorld;

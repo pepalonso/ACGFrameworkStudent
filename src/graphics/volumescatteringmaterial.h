@@ -13,6 +13,7 @@ public:
 	// Task 3.2: Scattering parameters
 	float scattering_coeff;    // μs - How much light scatters
 	float light_step_length;   // Step size for shadow ray-marching
+	float phase_g;             // Henyey-Greenstein asymmetry parameter g (Task 3.3)
 
 	// Constructor
 	VolumeScatteringMaterial(float absorption_coeff = 0.5f);
