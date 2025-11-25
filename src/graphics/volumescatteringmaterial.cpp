@@ -41,6 +41,7 @@ void VolumeScatteringMaterial::setUniforms(Camera* camera, glm::mat4 model)
 	// Task 3.2: Upload scattering parameters
 	this->shader->setUniform("u_scattering_coeff", this->scattering_coeff);
 	this->shader->setUniform("u_light_step_length", this->light_step_length);
+	//3.3
 	this->shader->setUniform("u_phase_g", this->phase_g);
 	
 	// Task 3.2: Upload light data (if light exists)

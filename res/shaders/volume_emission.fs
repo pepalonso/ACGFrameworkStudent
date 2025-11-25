@@ -237,14 +237,14 @@ void main()
 			// ωi : incident direction from light -> lightDir
 			float cosTheta = dot(normalize(-rayDirObj), lightDir);
 			cosTheta = clamp(cosTheta, -1.0, 1.0);
-			float g = u_phase_g;
+			float g = -u_phase_g;
 			float oneMinusGSqr = 1.0 - g * g;
 			float denom = 1.0 + g * g - 2.0 * g * cosTheta;
 			float phaseHG = oneMinusGSqr / (4.0 * 3.14159265 * pow(denom, 1.5));
 			
 			vec3 inScattering = mu_s * u_light_intensity * u_light_color.rgb * shadowTransmittance * phaseHG;
 			
-			// Add scattering contribution to color
+			// Add scattering contribution to emission
 			accumulatedEmission.rgb += inScattering * transmittance * stepLengthWorld;
 			
 			// Advance along the ray
